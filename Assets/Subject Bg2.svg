@@ -1,0 +1,42 @@
+<svg width="286" height="329" viewBox="0 0 286 329" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_1632_1362)">
+<circle cx="242.5" cy="167.5" r="2.5" fill="black"/>
+<circle cx="242.5" cy="152.5" r="2.5" fill="black"/>
+<circle cx="242.5" cy="137.5" r="2.5" fill="black"/>
+<circle cx="242.5" cy="122.5" r="2.5" fill="black"/>
+<circle cx="242.5" cy="107.5" r="2.5" fill="black"/>
+<circle cx="242.5" cy="92.5" r="2.5" fill="black"/>
+<circle cx="242.5" cy="77.5" r="2.5" fill="black"/>
+<circle cx="242.5" cy="62.5" r="2.5" fill="black"/>
+<circle cx="242.5" cy="47.5" r="2.5" fill="black"/>
+<circle cx="242.5" cy="32.5" r="2.5" fill="black"/>
+<circle cx="242.5" cy="17.5" r="2.5" fill="black"/>
+<circle cx="251.5" cy="167.5" r="2.5" fill="black"/>
+<circle cx="251.5" cy="152.5" r="2.5" fill="black"/>
+<circle cx="251.5" cy="137.5" r="2.5" fill="black"/>
+<circle cx="251.5" cy="122.5" r="2.5" fill="black"/>
+<circle cx="251.5" cy="107.5" r="2.5" fill="black"/>
+<circle cx="251.5" cy="92.5" r="2.5" fill="black"/>
+<circle cx="251.5" cy="77.5" r="2.5" fill="black"/>
+<circle cx="251.5" cy="62.5" r="2.5" fill="black"/>
+<circle cx="251.5" cy="47.5" r="2.5" fill="black"/>
+<circle cx="251.5" cy="32.5" r="2.5" fill="black"/>
+<circle cx="251.5" cy="17.5" r="2.5" fill="black"/>
+<rect x="11" y="82" width="153" height="74" fill="#FCDD1C"/>
+<mask id="stroke0_1632_1362" fill="white">
+<path d="M22.5 44L67.9663 122.75H-22.9663L22.5 44Z"/>
+</mask>
+<path d="M22.5 44L67.9663 122.75H-22.9663L22.5 44Z" stroke-width="4" stroke="black" mask="url(#stroke0_1632_1362)"/>
+<line x1="234" y1="4.5" x2="126" y2="4.49995" stroke="black"/>
+<line x1="234" y1="24.5" x2="126" y2="24.5" stroke="black"/>
+<line x1="209.5" y1="47" x2="209.5" y2="-58" stroke="black"/>
+<line x1="189.5" y1="47" x2="189.5" y2="-58" stroke="black"/>
+<line x1="169.5" y1="47" x2="169.5" y2="-58" stroke="black"/>
+<line x1="149.5" y1="47" x2="149.5" y2="-58" stroke="black"/>
+</g>
+<defs>
+<clipPath id="clip0_1632_1362">
+<rect width="286" height="329" fill="white"/>
+</clipPath>
+</defs>
+</svg>

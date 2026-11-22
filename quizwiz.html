@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QuizWiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500&display=swap" rel="stylesheet">
+<!--
+QUIZWIZ - Event-Driven Programming project (frontend only, data lives in localStorage)
+
+HOW EVENTS ARE MARKED: search this file for "EVENT:" to find every listener.
+The full table (event, trigger, handler, result) is the EVENT_MAP array in the script.
+Open it in the app at  index.html#/events  or run console.table in DevTools (printed on load).
+
+SVG REPLACEMENT NOTES (search "SVG-TODO:" in the script/CSS). Fig = Figma file nZhMbRwQ6i0jnSvDymNubi, node ids from the design.
+All art below is a hand-drawn placeholder because the Figma asset URLs could not be downloaded. Export each from Figma as SVG
+(keep the root width/height), then replace the placeholder and check it against the Figma screenshot.
+1. FEATHER + wordmark (Fig 1634:1652; feather 1634:1646, wordmark 1634:1651; 48px icon + 147x29 wordmark)
+   Now: FEATHER constant (rough path) + <span>QuizWiz</span> text in header(). Replace both with the exported logo SVG. Shown in header on every view.
+2. HERO art (Fig dashboard 1628:997, shapes 1634:1642-1634:1660 and halftone 1633:1622)
+   Now: HERO constant, svg.art, 473x295, pinned right:0 top:0 inside .hero. Replace with the exported art at the same size/position.
+3. HALFTONE circles (Fig 1633:1622 on dashboard, 1653:2328 and 1653:2331 on flashcards/results; 540x540 each)
+   Now: CSS radial-gradient dot pattern in ".face::before,.res::before". Replace with two <img>/<svg> (right one at left:554px, left one mirrored at left:-82px, top:-2px).
+4. HIGHLIGHTER scribble (Fig 1628:1078) behind "Overall Mastery:" and "Subjects:"
+   Now: CSS ".stat span::before" (flat yellow rotated blob). Replace with the SVG as a background or inline element.
+5. SUBJECT card art (Fig 1628:1323, 1632:1341, 1632:1529)
+   Now: SA array (3 variants, cycled by subject position), drawn into a 286x303 viewBox. Replace each entry with the exported art (same 290x307 card box).
+6. LESSON card art (Fig 1635:1847, 1635:1857, 1635:1837: lines 1635:1867-1870 plus a coloured bar)
+   Now: LA(colour) function and LC colours (#5759d4, #fcdd1c, #ff4f38). Replace with the exported line/dot art; keep the bar colour per variant.
+7. ICONS (plus, search, filter, arrows, trash, circle-check, circle-x, close)
+   Now: simple stroke icons in the P object via ic(). Optional: swap for the exact Figma icons (akar-icons, boxicons, bi, fluent).
+
+REACT NOTES (search "REACT:"):
+- Components: Header, Hero, SubjectGrid/ItemCard (cards are reused for lessons), Modal (SubjectForm, LessonForm, StartQuizConfirm), Flashcards, Results, EventMap
+- State: db -> useReducer + useEffect that writes localStorage; ui (search/filter) -> useState; qz (quiz session) -> useReducer inside Flashcards
+- Routing: the hash routes become <HashRouter> routes
+- The delegated click handler + data-a attributes become onClick props
+- The SVG art helpers (SA, LA, HERO) become small SVG components
+-->
+<style>
+:root{--bg:#fff1e8;--yellow:#ffda07;--teal:#70cedb;--pill:#69bbcb;--lime:#e2ef64;--red:#ff4f38;--sh:4px 6px 0 #000}
+*{box-sizing:border-box;margin:0}
+[hidden]{display:none!important}
+body{background:var(--bg);color:#000;font:500 16px/1.25 Lexend,system-ui,sans-serif;min-height:100vh}
+body.lock{overflow:hidden}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0}
+a{color:inherit;text-decoration:none}
+svg{flex:none}
+:focus-visible{outline:3px solid #5759d4;outline-offset:3px}
+.wrap{width:min(1224px,100% - 48px);margin:0 auto}
+header{height:80px}
+header .wrap{height:100%;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:8px;font-size:27px;letter-spacing:.14em}
+.logo i{font-style:normal;color:#5759d4}
+.acts{display:flex;gap:16px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:10px 16px;border:2px solid #000;border-radius:15px;box-shadow:var(--sh);font-size:20px;background:var(--bg);white-space:nowrap;transition:transform .08s,box-shadow .08s}
+@media(hover:hover){.btn:hover:not(:disabled){transform:translate(-2px,-2px);box-shadow:6px 8px 0 #000}.chip:hover{background:var(--lime)}.card:hover{transform:translate(-3px,-3px);box-shadow:7px 9px 0 #000}.pill:hover{background:var(--lime)}}
+.btn:active:not(:disabled){transform:translate(3px,4px);box-shadow:1px 2px 0 #000}
+.btn:disabled{opacity:.3;cursor:default}
+.btn.y{background:var(--yellow)}.btn.t{background:var(--teal)}.btn.r{background:var(--red)}
+.btn.on{outline:3px solid #000;outline-offset:3px}
+.hero{position:relative;overflow:hidden;margin-top:40px;min-height:295px;padding:38px;display:flex;flex-direction:column;justify-content:center;gap:24px;background:#fff;border:2px solid #000;border-radius:15px;box-shadow:var(--sh)}
+.hero>div,.hero .stats{position:relative;z-index:1}
+.hero h1{font-size:40px;font-weight:500;margin-bottom:16px;max-width:664px}.hero p{max-width:664px}
+.stats{display:flex;gap:16px}
+.stat{width:161px;height:92px;padding:14px;background:#fff4ed;border:2px solid #000;border-radius:15px;box-shadow:var(--sh)}
+.stat span{position:relative;display:flex;align-items:center;height:35px;font-size:14px;opacity:.6}
+.stat span::before{/* SVG-TODO 4: scribble */content:"";position:absolute;inset:5px -8px 4px -4px;background:#ffe96b;border-radius:10px;transform:rotate(-3deg);z-index:-1}
+.stat b{font-size:24px;font-weight:500}
+.art{position:absolute;right:0;top:0;width:473px;height:295px}
+.sec{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin:80px 0 36px}
+.sec h2{font-size:36px;font-weight:500}
+.tools{display:flex;gap:16px;align-items:center}
+.search{position:relative;width:275px}
+.search svg{position:absolute;left:10px;top:10px}
+.search .in{height:48px;padding:0 14px 0 46px;background:var(--bg)}
+.chip{display:flex;align-items:center;gap:8px;height:48px;padding:0 16px;border:2px solid #000;border-radius:15px;background:var(--bg)}
+.dd{position:relative}
+.menu{position:absolute;right:0;top:calc(100% + 8px);z-index:5;min-width:100%;padding:6px;background:var(--bg);border:2px solid #000;border-radius:15px;box-shadow:var(--sh)}
+.menu button{display:block;width:100%;padding:8px 12px;text-align:left;white-space:nowrap;border-radius:10px}
+.menu button:hover,.menu [aria-checked=true]{background:var(--lime)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,290px);justify-content:space-between;gap:36px 20px;padding-bottom:80px}
+.empty{grid-column:1/-1;opacity:.6}
+.card{cursor:pointer;transition:transform .12s,box-shadow .12s;position:relative;height:307px;overflow:hidden;background:#fff;border:2px solid #000;border-radius:15px;box-shadow:var(--sh)}
+.card:has(.open:focus-visible){outline:3px solid #5759d4;outline-offset:4px}
+.card>svg{position:absolute;inset:0;width:100%;height:100%}
+.pill{position:absolute;left:22px;top:30px;z-index:2;padding:2px 8px;border-radius:15px;background:var(--pill)}
+.meta{position:absolute;left:22px;right:22px;bottom:95px;display:flex;flex-direction:column;align-items:flex-start;gap:12px}
+.tag{padding:2px 8px;border-radius:15px;background:var(--lime)}
+.meta h3{max-width:100%;font-size:24px;font-weight:500}
+.open{all:unset;display:block;max-width:100%;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.open::after{content:"";position:absolute;inset:0}
+.card>svg,.mast,.tag{pointer-events:none}
+.mast{position:absolute;left:22px;right:22px;bottom:38px;font-size:12px}
+.mast div:first-child{display:flex;justify-content:space-between;opacity:.6;margin-bottom:4px}
+.track{height:10px;border-radius:44px;background:#000;overflow:hidden}
+.track b{display:block;height:100%;background:#69bbcc;border-radius:52px;transition:width .4s}
+.back{display:inline-flex;align-items:center;gap:4px;margin-top:32px;font-size:20px;opacity:.3}
+.sh{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin:16px 0 40px;flex-wrap:wrap}
+.sh h1{font-size:36px;font-weight:500;margin-bottom:16px}
+#modal{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.45)}
+.modal{position:relative;width:474px;max-width:100%;max-height:100%;overflow-x:hidden;overflow-y:auto;padding:22px 30px 26px;background:var(--bg);border:2px solid #000;border-radius:15px;box-shadow:var(--sh)}
+.modal form{display:flex;flex-direction:column;gap:22px}
+.mh{display:grid;gap:12px;margin-bottom:16px;padding-right:40px}
+.mh h2{font-size:32px;font-weight:500;overflow-wrap:anywhere}
+.x{position:absolute;right:24px;top:20px}.x svg{transform:rotate(45deg)}
+.lb{display:flex;justify-content:space-between;margin-bottom:12px;font-weight:400}
+.lb em{font-style:normal;opacity:.3}
+.in{width:100%;height:48px;padding:0 14px;border:2px solid #000;border-radius:15px;background:#fff;font-weight:400}
+textarea.in{height:115px;padding:12px 14px;resize:none}
+.in::placeholder{opacity:.3}
+.err{margin-top:8px;color:#c4220f;font-size:14px;font-weight:400}.err:empty{display:none}
+.cards{display:flex;flex-direction:column;gap:18px;max-height:min(330px,36vh);overflow-x:hidden;overflow-y:auto;padding:0 10px 10px 0}
+.cc{display:grid;gap:12px;padding:16px 12px;background:var(--bg);border:2px solid #000;border-radius:15px;box-shadow:var(--sh);font-weight:400}
+.cc>div:first-child{display:flex;justify-content:space-between;align-items:center}
+.del{opacity:.4}.del:hover:not(:disabled){opacity:1}.del:disabled{opacity:.15;cursor:default}
+.foot{display:flex;gap:17px}.foot .btn{flex:1}
+.qh{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;width:min(1016px,100%);margin:40px auto 0}
+.qh h1{font-size:32px;font-weight:500;margin-bottom:12px}
+.prog{width:282px;font-size:32px;text-align:right}
+.prog .track{margin-top:12px;background:rgba(0,0,0,.15)}.prog .track b{background:#000}
+.flash{position:relative;width:min(1016px,100%);height:538px;margin:48px auto 0;perspective:1600px}
+.fi{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .5s}
+.flash.f .fi{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:70px 100px;text-align:center;background:#fff;border:2px solid #000;border-radius:15px;box-shadow:var(--sh);overflow:hidden;backface-visibility:hidden}
+.face.b{transform:rotateY(180deg)}
+.face::before,.res::before{/* SVG-TODO 3: replace dot pattern with halftone SVGs */content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle,rgba(228,190,160,.4) 38%,transparent 42%) 0 0/22px 22px;-webkit-mask-image:linear-gradient(90deg,#000,transparent 32%,transparent 68%,#000);mask-image:linear-gradient(90deg,#000,transparent 32%,transparent 68%,#000)}
+.hit{position:absolute;inset:0;width:100%;height:100%}
+.tx{position:relative;max-height:100%;overflow:auto;font-size:32px;overflow-wrap:anywhere}.tx.sm{font-size:24px}.tx.xs{font-size:19px}
+.lab,.hint{position:absolute;opacity:.3;font-size:20px;pointer-events:none}
+.lab{top:30px}.hint{bottom:56px}
+.rate{position:absolute;bottom:48px;display:flex;gap:16px}.rate .btn{font-size:16px;padding:8px 14px}
+.qn{display:flex;justify-content:space-between;width:min(1016px,100%);margin:80px auto 60px}
+.res{position:relative;display:grid;grid-template-columns:240px 1fr;gap:48px;align-items:center;width:min(1016px,100%);min-height:538px;margin:48px auto 60px;padding:30px 40px 30px 86px;background:#fff;border:2px solid #000;border-radius:15px;box-shadow:var(--sh);overflow:hidden}
+.res>div{position:relative}
+.big{font-size:80px;margin:12px 0}
+.two{display:flex;gap:19px}.two b{display:block;font-size:24px;font-weight:500;margin-top:2px}
+.bh{display:flex;justify-content:space-between;font-size:20px;margin-bottom:12px}
+.rows{max-height:290px;overflow:auto;padding-right:4px}
+.qr{display:grid;grid-template-columns:52px 1fr 25px;gap:8px;align-items:center;margin-bottom:8px}
+.qr b{font-size:20px;font-weight:500}.qr span{opacity:.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.foot2{display:flex;justify-content:center;gap:24px;margin-top:20px;flex-wrap:wrap}
+.tw{overflow:auto;margin:24px 0;background:#fff;border:2px solid #000;border-radius:15px;box-shadow:var(--sh)}
+table{border-collapse:collapse;width:100%}th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid rgba(0,0,0,.15)}th{background:var(--lime)}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:60;display:grid;gap:8px}
+.toast{padding:10px 16px;background:var(--yellow);border:2px solid #000;border-radius:15px;box-shadow:var(--sh)}
+@media(max-width:900px){.art{display:none}.hero{padding:28px 20px}.hero h1{font-size:30px}.qh{flex-direction:column}.prog{width:100%}.face{padding:60px 20px}.res{grid-template-columns:1fr;padding:30px 20px}.grid{justify-content:center}.search{width:100%}.tools{width:100%}.acts{gap:8px}header .btn{font-size:14px;padding:8px 10px}.logo{font-size:20px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header id="hd"></header>
+<main id="app"></main>
+<div id="modal" hidden></div>
+<div id="toast" role="status"></div>
+<script>
+/* ---------- helpers ---------- */
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
+const uid=()=>Math.random().toString(36).slice(2,9);
+/* SVG-TODO 7 (optional) */ const P={plus:'<path d="M12 5v14M5 12h14"/>',search:'<circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/>',filter:'<path d="M4 7h16M7 12h10M10 17h4"/>',arrow:'<path d="M4 12h16m-6-6 6 6-6 6"/>',back:'<path d="M20 12H4m6-6-6 6 6 6"/>',trash:'<path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/>',ok:'<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',no:'<circle cx="12" cy="12" r="9"/><path d="m9 9 6 6m0-6-6 6"/>'};
+const ic=(d,s=24,c='#000')=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+
+/* ---------- SVG-TODO: placeholder art, see SVG REPLACEMENT NOTES at the top of the file ---------- */
+const rc=(x,y,w,h,f)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${f}"/>`;
+const ci=(x,y,r,f)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${f}"/>`;
+const gr=(x,y,c,r,s)=>{let d='';for(let i=0;i<=c;i++)d+=`M${x+i*s} ${y}v${r*s}`;for(let j=0;j<=r;j++)d+=`M${x} ${y+j*s}h${c*s}`;return`<path d="${d}" stroke="#000" stroke-width="1" fill="none"/>`};
+const dots=(x,y,c,r,g,rad=1.8)=>{let s='';for(let i=0;i<c;i++)for(let j=0;j<r;j++)s+=`<circle cx="${x+i*g}" cy="${y+j*g}" r="${rad}"/>`;return`<g fill="#000">${s}</g>`};
+const sv=b=>`<svg viewBox="0 0 286 303" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${b}</svg>`;
+const SA=[ // SVG-TODO 5: subject card art (cycles through 3 designs)
+ rc(18,4,104,36,'#ffb800')+gr(4,28,3,4,22)+dots(178,52,7,7,12)+ci(190,120,46,'#ff4f38'),
+ rc(14,84,150,72,'#fcdd1c')+'<path d="M0 78l62-30 30 66z" fill="none" stroke="#000" stroke-width="1.5"/>'+gr(128,4,5,2,20)+dots(250,20,1,12,12,2.2),
+ rc(20,8,118,12,'#5759d4')+'<path d="M8 12h160M66 0v165" stroke="#000" stroke-width="1.5"/>'+dots(41,34,1,8,12)+gr(180,102,4,3,22)+ci(200,136,40,'#ff38b6')].map(sv);
+const LC=['#5759d4','#fcdd1c','#ff4f38']; // lesson card art colours
+/* SVG-TODO 6 */ const LA=c=>sv(rc(156,22,119,11,c)+'<path d="M58 28H284M228 -12V190" stroke="#000" stroke-width="2" fill="none"/>'+dots(200,52,1,9,12,2));
+/* SVG-TODO 2 */ const HERO=`<svg class="art" viewBox="0 0 473 295" aria-hidden="true"><defs><pattern id="ht" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="4.5" cy="4.5" r="2.2" fill="#ff38b6" opacity=".45"/></pattern><linearGradient id="fd"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff"/></linearGradient><mask id="mk"><rect x="176" width="297" height="295" fill="url(#fd)"/></mask></defs>${rc(150,47,230,84,'#ff38b6')}<rect x="176" width="297" height="295" fill="url(#ht)" mask="url(#mk)"/>${ci(172,141,74,'#ffb800')}${gr(78,121,5,5,22)}${rc(34,190,11,105,'#ff4f38')}<path d="M40 88V295M0 258H203" stroke="#000" stroke-width="2"/>${dots(14,279,10,1,10)}</svg>`;
+/* SVG-TODO 1 */ const FEATHER=`<svg width="48" height="48" viewBox="0 0 24 24" aria-hidden="true"><path fill="#5759d4" d="M20 3C13 3 7 7 6 14l-2 6 1 1 6-2c7-1 11-7 9-16zM8 16c3-4 6-6 9-8-2 4-5 7-9 8z"/></svg>`;
+
+/* ---------- data (localStorage) ---------- */
+const KEY='quizwiz.v1';
+const L=(name,qa)=>({id:uid(),name,last:null,cards:qa.map(([q,a])=>({id:uid(),q,a,st:null}))}); // st: 'm' mastered | 'h' hard | null
+const S=(name,desc,lessons)=>({id:uid(),name,desc,lessons});
+const SEED=()=>[
+ S('Event-Driven Programming','How programs react to clicks, keys, timers and messages.',[
+  L('DOM Events',[['What is an event?','A signal that something happened, such as a click or a key press.'],['What does addEventListener do?','It registers a function that runs each time the event fires on that element.'],['What is event bubbling?','The event travels up from the target through its ancestors.'],['What is event delegation?','One listener on a parent handles events from many children by checking event.target.'],['What does preventDefault() do?','It stops the default browser action, such as submitting a form.']]),
+  L('Event Loop',[['What does the call stack hold?','The functions that are currently running.'],['Where do callbacks wait?','In the task queue until the call stack is empty.'],['Why does setTimeout(fn, 0) not run at once?','Its callback must wait in the queue until the current code finishes.']])]),
+ S('JavaScript Basics','Core language features.',[
+  L('Variables',[['Which keyword declares a block-scoped variable you can reassign?','let'],['Which keyword declares a constant binding?','const'],['What does typeof null return?','"object" (a long-standing quirk).']]),
+  L('Functions',[['What is a callback?','A function passed to another function to be called later.'],['What is a closure?','A function that remembers variables from the scope where it was created.']])]),
+ S('HTML and CSS','Structure and style.',[
+  L('Semantic HTML',[['Why use <nav> instead of <div>?','It tells browsers and screen readers that the content is navigation.'],['Which element wraps the main content of a page?','<main>']]),
+  L('Flexbox',[['Which property sets the main axis direction?','flex-direction'],['Which property spreads items along the main axis?','justify-content'],['Which property aligns items on the cross axis?','align-items']])])];
+let db,cur,qz=null,modal=null;const ui={sq:'',lq:'',f:'all'};
+const load=()=>{try{db=JSON.parse(localStorage.getItem(KEY))}catch{db=null}if(!db||!Array.isArray(db.subjects))db={subjects:SEED()}};
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(db))}catch{toast('Could not save. Browser storage may be full or blocked.')}};
+const find=id=>db.subjects.find(s=>s.id===id);
+const lesson=(s=qz.sid,l=qz.lid)=>find(s)?.lessons.find(x=>x.id===l);
+const pct=ls=>{const t=ls.reduce((n,l)=>n+l.cards.length,0);return t?Math.round(ls.reduce((n,l)=>n+l.cards.filter(c=>c.st==='m').length,0)/t*100):0};
+const FILTERS={all:'All Subjects',prog:'In Progress',new:'Not Started',done:'Mastered'};
+
+/* ---------- views ---------- */
+const route=()=>{const p=location.hash.slice(2).split('/');return{name:p[0]||'home',a:p[1],b:p[2]}};
+function render(){ // REACT: this is what <Routes> does
+ cur=route();if(cur.name!=='quiz')qz=null;
+ header();
+ if(cur.name==='subject')subj();
+ else if(cur.name==='quiz'){if(!qz||qz.lid!==cur.b)startQuiz();if(qz)qz.done?complete():quiz()}
+ else if(cur.name==='events')events();else home();
+}
+function header(){ // REACT: <Header route={...}/>
+ const n=cur.name,add=t=>`<button class="btn y" data-a="${t}">${ic(P.plus,28)}ADD ${t.slice(4).toUpperCase()}</button>`;
+ $('#hd').innerHTML=`<div class="wrap"><a class="logo" href="#/" aria-label="QuizWiz home">${FEATHER}<span>Qu<i>i</i>zW<i>i</i>z</span></a><div class="acts">${n==='home'?add('add-subject'):n==='subject'?`<button class="btn t" data-a="edit-subject">EDIT</button>${add('add-lesson')}`:''}</div></div>`;
+}
+const searchBox=(k,ph,v)=>`<div class="search">${ic(P.search,28)}<input class="in" type="search" data-i="${k}" placeholder="${ph}" value="${esc(v)}" aria-label="${ph}"></div>`;
+const card=(id,art,tag,name,p,kind)=>`<article class="card">${art}<button class="pill" data-a="edit-${kind}" data-id="${id}">EDIT</button><div class="meta"><span class="tag">${tag}</span><h3><button class="open" data-a="open-${kind}" data-id="${id}">${esc(name)}</button></h3></div><div class="mast"><div><span>Mastery Level</span><span>${p}%</span></div><div class="track"><b style="width:${p}%"></b></div></div></article>`;
+
+function home(){ // REACT: <Dashboard>
+ document.title='QuizWiz';
+ $('#app').innerHTML=`<div class="wrap"><section class="hero"><div><h1>Your learning journey starts here</h1><p>Keep practicing, track your progress, and turn what you learn into what you know.</p></div><div class="stats"><div class="stat"><span>Overall Mastery:</span><b>${pct(db.subjects.flatMap(s=>s.lessons))}%</b></div><div class="stat"><span>Subjects:</span><b>${db.subjects.length}</b></div></div>${HERO}</section>
+ <div class="sec"><h2>My Subjects</h2><div class="tools">${searchBox('sq','Search by subject name',ui.sq)}<div class="dd"><button class="chip" data-a="dd" aria-haspopup="true" aria-expanded="false">${ic(P.filter,20)}<span>${FILTERS[ui.f]}</span></button><div class="menu" role="menu" hidden>${Object.entries(FILTERS).map(([k,v])=>`<button role="menuitemradio" aria-checked="${k===ui.f}" data-a="filt" data-v="${k}">${v}</button>`).join('')}</div></div></div></div><div class="grid" id="grid"></div></div>`;
+ grid();
+}
+function grid(){
+ const q=ui.sq.trim().toLowerCase();
+ const list=db.subjects.map((s,i)=>({s,i,p:pct(s.lessons)})).filter(({s,p})=>s.name.toLowerCase().includes(q)&&(ui.f==='all'||(ui.f==='prog'&&p>0&&p<100)||(ui.f==='new'&&p===0)||(ui.f==='done'&&p===100)));
+ $('#grid').innerHTML=list.map(({s,i,p})=>card(s.id,SA[i%3],'Deck '+String(i+1).padStart(2,'0'),s.name,p,'subject')).join('')||`<p class="empty">${db.subjects.length?'No subjects match your search or filter.':'No subjects yet. Select Add Subject to create one.'}</p>`;
+}
+function subj(){ // REACT: <SubjectPage>
+ const s=find(cur.a);if(!s){location.replace('#/');return}
+ ui.lq='';document.title=s.name+' - QuizWiz';
+ $('#app').innerHTML=`<div class="wrap"><a class="back" href="#/">${ic(P.back,25)}Back</a><div class="sh"><div><h1>${esc(s.name)}</h1><p>${esc(s.desc)}</p></div>${searchBox('lq','Search by Lesson name','')}</div><div class="grid" id="grid"></div></div>`;
+ lessons();
+}
+function lessons(){
+ const s=find(cur.a),q=ui.lq.trim().toLowerCase();
+ $('#grid').innerHTML=s.lessons.map((l,i)=>({l,i})).filter(({l})=>l.name.toLowerCase().includes(q)).map(({l,i})=>card(l.id,LA(LC[i%3]),`${l.cards.length} Card${l.cards.length==1?'':'s'}`,l.name,pct([l]),'lesson')).join('')||`<p class="empty">${s.lessons.length?'No lessons match your search.':'No lessons yet. Select Add Lesson to create one.'}</p>`;
+}
+const EVENT_MAP=[
+['DOMContentLoaded','Page finishes parsing','init','Load localStorage, render first view'],
+['hashchange','URL hash changes (card click, Back link, logo, browser Back)','render','Swap between dashboard, subject, quiz and event map'],
+['click','ADD SUBJECT / ADD LESSON / EDIT buttons','A[add-subject|add-lesson|edit-subject|edit-lesson]','Open the add or edit modal'],
+['click','Subject card','A[open-subject]','Go to the subject page'],
+['click','Lesson card','A[open-lesson]','Open the "Start quiz?" modal; START QUIZ goes to the quiz'],
+['click','All Subjects chip and its menu items','A[dd], A[filt]','Open the menu, filter the grid'],
+['click','ADD CARD / trash icon in the lesson modal','A[add-card], A[del-card]','Append a card input (list scrolls) or remove one'],
+['click','Flashcard','A[flip]','Flip between question and answer'],
+['click','HARD / MASTERED','A[rate]','Save the card status to localStorage, update mastery'],
+['click','PREV / NEXT / FINISH / RETAKE','A[prev|next|retake]','Move between cards, show results, restart'],
+['click','Outside the menu or modal','document listener','Close the filter menu or the modal'],
+['input','Search boxes','onInput','Filter cards live while typing'],
+['submit','Subject, lesson and start-quiz forms','onSubmit','Validate, save, re-render (Enter also submits)'],
+['keydown','Escape / Tab / Arrow keys','onKey','Close modal or menu, trap focus in modal, previous/next card'],
+['storage','Another tab changes localStorage','window listener','Reload data and re-render']];
+function events(){
+ document.title='Event map - QuizWiz';
+ $('#app').innerHTML=`<div class="wrap"><a class="back" href="#/">${ic(P.back,25)}Back</a><div class="sh"><div><h1>Event map</h1><p>Every listener in this app and what triggers it.</p></div></div><div class="tw"><table><thead><tr><th>Event</th><th>Trigger</th><th>Handler</th><th>Result</th></tr></thead><tbody>${EVENT_MAP.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div><button class="btn" data-a="reset">RESET SAMPLE DATA</button></div>`;
+}
+
+/* ---------- modals ---------- */
+function openModal(html,opener){
+ modal={opener};$('#modal').innerHTML=`<div class="modal" role="dialog" aria-modal="true" aria-labelledby="mt"><form novalidate ${html}</form></div>`;
+ $('#modal').hidden=false;document.body.classList.add('lock');
+ ($('#modal [autofocus]')||$('#modal .in')||$('#modal button')).focus();
+}
+function closeModal(){
+ if(!modal)return;const o=modal.opener;modal=null;$('#modal').hidden=true;$('#modal').innerHTML='';document.body.classList.remove('lock');
+ if(o&&o.isConnected)o.focus();
+}
+const X=`<button type="button" class="x" data-a="close" aria-label="Close">${ic(P.plus,28)}</button>`;
+const head=(t,s)=>`${X}<div class="mh"><h2 id="mt">${t}</h2><p>${s}</p></div>`;
+const foot=ok=>`<div class="foot"><button type="button" class="btn" data-a="close">CANCEL</button><button class="btn t">${ok}</button></div>`;
+function subjModal(id){ // REACT: <SubjectForm>
+ const s=id&&find(id);
+ openModal(`data-f="subject" data-id="${id||''}">${head(s?'Edit Subject':'Add Subject',s?'Modify current subject':'Add a subject')}<div class="fld"><label class="lb" for="f1">Subject Title:</label><input class="in" id="f1" name="t" maxlength="40" placeholder="Add subject title" value="${esc(s?s.name:'')}"><p class="err" role="alert"></p></div><div class="fld"><label class="lb" for="f2">Subject Description: <em>Optional</em></label><textarea class="in" id="f2" name="d" maxlength="160" placeholder="Brief description of subject">${esc(s?s.desc:'')}</textarea></div>${foot(s?'SAVE':'ADD SUBJECT')}`,document.activeElement);
+}
+const cardRow=c=>`<div class="cc" data-cid="${c.id||''}"><div><span class="cn"></span><button type="button" class="del" data-a="del-card" aria-label="Delete card">${ic(P.trash)}</button></div><div><span class="lb">Question</span><input class="in" data-k="q" maxlength="200" aria-label="Question" placeholder="Add a question" value="${esc(c.q||'')}"></div><div><span class="lb">Answer</span><input class="in" data-k="a" maxlength="300" aria-label="Answer" placeholder="Add an answer" value="${esc(c.a||'')}"></div><p class="err"></p></div>`;
+function numCards(){const rs=$$('#cards .cc');rs.forEach((r,i)=>{$('.cn',r).textContent='Card '+(i+1);$('.del',r).disabled=rs.length<2})}
+function lessonModal(sid,id){ // REACT: <LessonForm>
+ const s=find(sid),l=id&&s.lessons.find(x=>x.id===id);
+ openModal(`data-f="lesson" data-s="${sid}" data-id="${id||''}">${head(l?esc(l.name):'Add Lesson',l?'Modify and add cards':'Create a lesson and add cards')}<div class="fld"><label class="lb" for="f1">Lesson Title:</label><input class="in" id="f1" name="t" maxlength="40" placeholder="Add lesson title" value="${esc(l?l.name:'')}"><p class="err" role="alert"></p></div><div><div class="cards" id="cards">${(l?l.cards:[{}]).map(cardRow).join('')}</div><p class="err" id="cerr" role="alert"></p></div><button type="button" class="btn y" data-a="add-card">${ic(P.plus,28)}ADD CARD</button>${foot(l?'SAVE':'ADD LESSON')}`,document.activeElement);
+ numCards();
+}
+function startModal(sid,id){
+ const l=lesson(sid,id),n=l.cards.length;
+ openModal(`data-f="start" data-s="${sid}" data-id="${id}">${head('Start quiz?',`${esc(l.name)} has ${n} card${n==1?'':'s'}. Flip each card, then mark it Hard or Mastered.`)}<div class="foot"><button type="button" class="btn" data-a="close">CANCEL</button><button class="btn t" autofocus>START QUIZ</button></div>`,document.activeElement);
+}
+
+/* ---------- flashcards ---------- */
+function startQuiz(){if(!lesson(cur.a,cur.b)){location.replace('#/');return}qz={sid:cur.a,lid:cur.b,i:0,fl:false,res:{},t0:Date.now(),done:false}}
+function quiz(focus){ // REACT: <Flashcards>
+ const l=lesson(),c=l.cards[qz.i],n=l.cards.length,r=qz.res[c.id],sz=t=>t.length>220?'xs':t.length>110?'sm':'',v=qz.fl;
+ document.title=l.name+' - QuizWiz';
+ $('#app').innerHTML=`<div class="wrap"><div class="qh"><div><h1>${esc(l.name)}</h1><p id="sub">${v?'Rate how well you knew it':'Click to reveal answer'}</p></div><div class="prog" aria-live="polite">${qz.i+1}/${n}<div class="track"><b style="width:${(qz.i+1)/n*100}%"></b></div></div></div>
+ <div class="flash${v?' f':''}"><div class="fi"><div class="face"${v?' inert':''}><button class="hit" data-a="flip" aria-label="Reveal answer"></button><span class="lab">Question ${qz.i+1}</span><p class="tx ${sz(c.q)}">${esc(c.q)}</p><span class="hint">Click anywhere to flip</span></div><div class="face b"${v?'':' inert'}><button class="hit" data-a="flip" aria-label="Show question again"></button><span class="lab">Question ${qz.i+1}</span><p class="tx ${sz(c.a)}">${esc(c.a)}</p><div class="rate"><button class="btn r${r==='h'?' on':''}" data-a="rate" data-v="h" aria-pressed="${r==='h'}">HARD</button><button class="btn y${r==='m'?' on':''}" data-a="rate" data-v="m" aria-pressed="${r==='m'}">MASTERED</button></div></div></div></div>
+ <div class="qn"><button class="btn" data-a="prev"${qz.i?'':' disabled'}>${ic(P.back,25)}PREV</button><button class="btn t" data-a="next">${qz.i===n-1?'FINISH':'NEXT'}${ic(P.arrow,25)}</button></div></div>`;
+ if(focus)$(focus)?.focus();
+}
+function complete(){ // REACT: <Results>
+ const l=lesson(),n=l.cards.length,k=l.last,m=Math.floor(k.ms/6e4),s=String(Math.floor(k.ms/1e3)%60).padStart(2,'0');
+ $('#app').innerHTML=`<div class="wrap"><div class="qh"><div><h1>${esc(l.name)}</h1><p>Completed review</p></div></div><section class="res"><div><p>Total Score:</p><p class="big">${k.sc}/${n}</p><div class="two"><div><p>Duration:</p><b>${m}:${s} mins</b></div><div><p>Accuracy</p><b>${Math.round(k.sc/n*100)}%</b></div></div></div><div><div class="bh"><b>Question Breakdown</b><b>Marks</b></div><div class="rows">${l.cards.map((c,i)=>`<div class="qr"><b>Q${i+1}</b><span>${esc(c.q)}</span>${qz.res[c.id]==='m'?ic(P.ok,25,'#2a9d0f'):ic(P.no,25,'#ff4f38')}</div>`).join('')}</div><div class="foot2"><button class="btn" data-a="retake">RETAKE</button><a class="btn t" href="#/subject/${qz.sid}">${ic(P.back,25)}BACK TO LESSONS</a></div></div></section></div>`;
+}
+function finish(){
+ const l=lesson();l.last={sc:l.cards.filter(c=>qz.res[c.id]==='m').length,ms:Date.now()-qz.t0};save();qz.done=true;complete();
+}
+
+/* ---------- actions (one delegated click listener dispatches to these via data-a) ---------- */
+const ddClose=()=>{$$('.menu').forEach(m=>m.hidden=true);$$('.chip').forEach(c=>c.setAttribute('aria-expanded','false'))};
+const A={
+ 'add-subject':()=>subjModal(),
+ 'edit-subject':el=>subjModal(el.dataset.id||cur.a),
+ 'open-subject':el=>{location.hash='#/subject/'+el.dataset.id},
+ 'add-lesson':()=>lessonModal(cur.a),
+ 'edit-lesson':el=>lessonModal(cur.a,el.dataset.id),
+ 'open-lesson':el=>startModal(cur.a,el.dataset.id),
+ close:closeModal,
+ dd:el=>{const m=el.nextElementSibling,open=m.hidden;ddClose();m.hidden=!open;el.setAttribute('aria-expanded',open)},
+ filt:el=>{ui.f=el.dataset.v;$('.chip span').textContent=FILTERS[ui.f];$$('.menu button').forEach(b=>b.setAttribute('aria-checked',b.dataset.v===ui.f));ddClose();grid()},
+ 'add-card':()=>{const c=$('#cards');c.insertAdjacentHTML('beforeend',cardRow({}));numCards();c.lastElementChild.scrollIntoView({block:'nearest'});$('.in',c.lastElementChild).focus()},
+ 'del-card':el=>{el.closest('.cc').remove();numCards()},
+ flip:()=>{qz.fl=!qz.fl;$('.flash').classList.toggle('f',qz.fl);const[a,b]=$$('.face');a.inert=qz.fl;b.inert=!qz.fl;$('#sub').textContent=qz.fl?'Rate how well you knew it':'Click to reveal answer';$('.hit',qz.fl?b:a).focus()},
+ rate:el=>{if(qz.busy)return;const q=qz,i=q.i,c=lesson().cards[i];q.res[c.id]=c.st=el.dataset.v;save();quiz(`[data-v="${el.dataset.v}"]`);q.busy=true;
+  setTimeout(()=>{if(qz===q&&q.i===i&&cur.name==='quiz')A.next()},350)}, // EVENT: click on HARD/MASTERED also advances (timer = setTimeout)
+ next:()=>{qz.busy=false;const n=lesson().cards.length;if(qz.i<n-1){qz.i++;qz.fl=false;quiz('[data-a=next]')}else finish()},
+ prev:()=>{qz.busy=false;if(qz.i){qz.i--;qz.fl=false;quiz('[data-a=prev]')}},
+ retake:()=>{startQuiz();quiz()},
+ reset:()=>{if(confirm('Replace all data with the sample data?')){db={subjects:SEED()};save();location.hash='#/';render()}}
+};
+// EVENT: click (delegated) - one listener on document handles every button and card
+document.addEventListener('click',e=>{
+ const el=e.target.closest('[data-a]');
+ if(el)A[el.dataset.a]?.(el,e);
+ else{const c=e.target.closest('.card');if(c)$('.open',c).click()} // whole card is clickable
+ if(!e.target.closest('.dd'))ddClose();
+ if(e.target.id==='modal')closeModal();
+});
+// EVENT: input - live search while typing
+document.addEventListener('input',e=>{
+ const k=e.target.dataset.i;
+ if(k==='sq'){ui.sq=e.target.value;grid()}
+ if(k==='lq'){ui.lq=e.target.value;lessons()}
+ if(modal)e.target.closest('.fld,.cc')?.querySelector('.err')?.replaceChildren();
+});
+// EVENT: submit - add/edit forms and the start-quiz confirmation
+document.addEventListener('submit',e=>{
+ e.preventDefault();
+ const f=e.target,d=f.dataset,t=f.t?f.t.value.trim():'';
+ if(d.f==='start'){closeModal();location.hash=`#/quiz/${d.s}/${d.id}`;return}
+ if(!t){$('.err',f.t.closest('.fld')).textContent=`Enter a ${d.f} title.`;f.t.focus();return}
+ if(d.f==='subject'){
+  const desc=f.d.value.trim(),s=d.id&&find(d.id);
+  if(s){s.name=t;s.desc=desc}else db.subjects.push({id:uid(),name:t,desc,lessons:[]});
+  toast(s?'Subject saved':'Subject added');
+ }else{
+  const cs=[];let ok=true;
+  $$('.cc',f).forEach(r=>{
+   const[q,a]=['q','a'].map(k=>$(`[data-k=${k}]`,r).value.trim()),er=$('.err',r);er.textContent='';
+   if(!q&&!a)return;
+   if(!q||!a){er.textContent=q?'Add an answer.':'Add a question.';ok=false;return}
+   cs.push({id:r.dataset.cid,q,a});
+  });
+  if(!ok)return;
+  if(!cs.length){$('#cerr').textContent='Add at least one card with a question and an answer.';return}
+  const s=find(d.s),l=d.id&&s.lessons.find(x=>x.id===d.id),old=new Map((l?l.cards:[]).map(c=>[c.id,c]));
+  const cards=cs.map(c=>{const o=old.get(c.id);return{id:o?o.id:uid(),q:c.q,a:c.a,st:o&&o.q===c.q&&o.a===c.a?o.st:null}}); // editing a card resets its mastery
+  if(l){l.name=t;l.cards=cards}else s.lessons.push({id:uid(),name:t,cards,last:null});
+  toast(l?'Lesson saved':'Lesson added');
+ }
+ save();closeModal();render();
+});
+// EVENT: keydown - Escape closes, Tab stays inside the modal, arrows move through flashcards
+document.addEventListener('keydown',e=>{
+ if(e.key==='Escape')ddClose();
+ if(modal){
+  if(e.key==='Escape')closeModal();
+  if(e.key==='Tab'){
+   const f=$$('#modal button,#modal input,#modal textarea').filter(x=>!x.disabled),a=document.activeElement;
+   if(e.shiftKey&&a===f[0]){e.preventDefault();f.at(-1).focus()}
+   else if(!e.shiftKey&&a===f.at(-1)){e.preventDefault();f[0].focus()}
+  }
+  return;
+ }
+ if(qz&&!qz.done&&cur.name==='quiz'&&!e.target.closest('input,textarea')){
+  if(e.key==='ArrowRight')A.next();
+  if(e.key==='ArrowLeft')A.prev();
+ }
+});
+// EVENT: hashchange - the URL is the router
+window.addEventListener('hashchange',()=>{closeModal();render();scrollTo(0,0)});
+// EVENT: storage - fires in other tabs when localStorage changes
+window.addEventListener('storage',e=>{if(e.key===KEY&&!modal&&cur.name!=='quiz'){load();render()}});
+// EVENT: DOMContentLoaded - app starts here
+document.addEventListener('DOMContentLoaded',()=>{load();save();render();console.table(EVENT_MAP)});
+
+function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;$('#toast').append(t);setTimeout(()=>t.remove(),2400)}
+</script>
+</body>
+</html>
