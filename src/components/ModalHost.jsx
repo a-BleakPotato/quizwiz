@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import SubjectForm from './SubjectForm';
 import LessonForm from './LessonForm';
 import StartQuizConfirm from './StartQuizConfirm';
+import DeleteConfirm from './DeleteConfirm';
 import { useApp } from '../AppContext';
 import { useToast } from '../Toast';
 
@@ -12,10 +13,18 @@ export default function ModalHost() {
   const navigate = useNavigate();
   const subject = modal?.subjectId ? db.subjects.find((s) => s.id === modal.subjectId) : null;
   const lesson = modal?.lessonId ? subject?.lessons.find((l) => l.id === modal.lessonId) : null;
+  const isLessonDelete = modal?.type === 'delete' && modal.kind === 'lesson';
+  const deleteInvalid = modal?.type === 'delete' && (
+    !Array.isArray(modal.ids) || !modal.ids.length ||
+    (isLessonDelete
+      ? (!subject || modal.ids.some((id) => !subject.lessons.some((l) => l.id === id)))
+      : modal.ids.some((id) => !db.subjects.some((s) => s.id === id)))
+  );
   const invalid = modal && (
     (modal.type === 'subject' && modal.subjectId && !subject) ||
     (modal.type === 'lesson' && (!subject || (modal.lessonId && !lesson))) ||
-    (modal.type === 'start' && (!subject || !lesson))
+    (modal.type === 'start' && (!subject || !lesson)) ||
+    deleteInvalid
   );
 
   useEffect(() => {
@@ -55,6 +64,26 @@ export default function ModalHost() {
 
   if (modal.type === 'lesson') {
     return <LessonForm lesson={lesson} onClose={closeModal} onSave={saveLesson} />;
+  }
+
+  if (modal.type === 'delete') {
+    const count = modal.ids.length;
+    return (
+      <DeleteConfirm
+        kind={modal.kind}
+        count={count}
+        onClose={closeModal}
+        onDelete={() => {
+          // EVENT: onSubmit - remove every selected subject or lesson from the db
+          if (isLessonDelete) dispatch({ type: 'delete-lessons', sid: modal.subjectId, ids: modal.ids });
+          else dispatch({ type: 'delete-subjects', ids: modal.ids });
+          const noun = isLessonDelete ? 'lesson' : 'subject';
+          showToast(`${count} ${noun}${count === 1 ? '' : 's'} deleted`);
+          closeModal();
+          modal.onDeleted?.();
+        }}
+      />
+    );
   }
 
   return (

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import Icon from './Icon';
 import SearchBox from './SearchBox';
+import DeleteToggle from './DeleteToggle';
 import { FILTERS } from '../data';
 
-export default function SubjectToolbar({ query, setQuery, filter, setFilter }) {
+export default function SubjectToolbar({ query, setQuery, filter, setFilter, deleteActive, onDeleteToggle }) {
   const [open, setOpen] = useState(false);
   const ddRef = useRef(null);
 
@@ -57,6 +58,7 @@ export default function SubjectToolbar({ query, setQuery, filter, setFilter }) {
           ))}
         </div>
       </div>
+      <DeleteToggle label="Delete subjects" active={deleteActive} onClick={onDeleteToggle} />
     </div>
   );
 }

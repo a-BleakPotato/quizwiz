@@ -143,6 +143,11 @@ export function dbReducer(db, action) {
     case 'edit-subject':
       return mapSubject(db, action.id, (s) => ({ ...s, name: action.name, desc: action.desc }));
 
+    case 'delete-subjects': {
+      const ids = new Set(action.ids);
+      return { ...db, subjects: db.subjects.filter((s) => !ids.has(s.id)) };
+    }
+
     case 'add-lesson':
       return mapSubject(db, action.sid, (s) => ({
         ...s,
@@ -151,6 +156,11 @@ export function dbReducer(db, action) {
 
     case 'edit-lesson':
       return mapLesson(db, action.sid, action.id, (l) => ({ ...l, name: action.name, cards: action.cards }));
+
+    case 'delete-lessons': {
+      const ids = new Set(action.ids);
+      return mapSubject(db, action.sid, (s) => ({ ...s, lessons: s.lessons.filter((l) => !ids.has(l.id)) }));
+    }
 
     case 'rate-card':
       return mapLesson(db, action.sid, action.lid, (l) => ({

@@ -1,6 +1,6 @@
 import ItemCard from './ItemCard';
 
-export default function CardGrid({ items, empty, onOpen, onEdit }) {
+export default function CardGrid({ items, empty, onOpen, onEdit, selectMode = false, selectedIds = [], onToggle }) {
   return (
     <div className="grid">
       {items.length
@@ -10,6 +10,9 @@ export default function CardGrid({ items, empty, onOpen, onEdit }) {
               {...item}
               onOpen={onOpen}
               onEdit={onEdit}
+              selectMode={selectMode}
+              selected={selectedIds.includes(item.id)}
+              onToggle={onToggle}
             />
           ))
         : <p className="empty">{empty}</p>}
